@@ -88,6 +88,12 @@ class Seed(ABC, Generic[InputT, OutputT, ConfigT]):
     output_model: ClassVar[type[BaseModel]]
     config_model: ClassVar[type[BaseModel] | None] = None
 
+    # Seeds priced per token/request (rather than per compute-second) set
+    # this during run()/stream handling; the launcher reads it after each
+    # task (resetting it before) and reports it for billing. A rune serves
+    # one task at a time, so a plain attribute is race-free.
+    billable_units: float | None = None
+
     @abstractmethod
     async def load(self, ctx: SeedContext) -> None:
         """Download artifacts (via ctx) and load the model. Runs once per Rune."""

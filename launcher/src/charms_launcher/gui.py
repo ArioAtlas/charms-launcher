@@ -160,6 +160,8 @@ def discover_seeds() -> list[SeedInfo]:
             source="pulled",
             title=manifest.name,
             description=manifest.description,
+            vram_mb=manifest.resources.vram_mb,
+            notes=manifest.resources.notes,
             env_specs=list(manifest.environment),
         )
     return sorted(seeds.values(), key=lambda s: s.id)

@@ -227,6 +227,7 @@ class LauncherClient:
                         stream_id=msg.stream_id,
                         final_output=final.model_dump(mode="json") if final is not None else None,
                         compute_ms=compute_ms,
+                        billable_units=self._seed.billable_units,
                     )
                 )
             )

@@ -32,6 +32,8 @@ class SeedExecutor:
         self, task_id: str, input_data: dict[str, Any], config: dict[str, Any] | None
     ) -> protocol.TaskResultMsg | protocol.TaskErrorMsg:
         started = time.perf_counter()
+        # Unit-priced seeds (tokens, …) set this during run(); reset per task.
+        self._seed.billable_units = None
 
         def compute_ms() -> float:
             return (time.perf_counter() - started) * 1000
@@ -48,6 +50,7 @@ class SeedExecutor:
                 task_id=task_id,
                 output=output.model_dump(mode="json"),
                 compute_ms=compute_ms(),
+                billable_units=self._seed.billable_units,
             )
         except asyncio.CancelledError:
             raise
@@ -56,4 +59,9 @@ class SeedExecutor:
                 task_id=task_id, error=f"invalid input: {exc}", compute_ms=compute_ms()
             )
         except Exception as exc:
-            return protocol.TaskErrorMsg(task_id=task_id, error=str(exc), compute_ms=compute_ms())
+            return protocol.TaskErrorMsg(
+                task_id=task_id,
+                error=str(exc),
+                compute_ms=compute_ms(),
+                billable_units=self._seed.billable_units,
+            )

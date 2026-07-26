@@ -28,6 +28,25 @@ async def test_executor_reports_invalid_input() -> None:
     assert "invalid input" in result.error
 
 
+class _TokenEchoSeed(EchoSeed):
+    """Echo variant that reports token usage, like the API-backed seeds do."""
+
+    async def run(self, input, config=None):  # type: ignore[no-untyped-def]
+        self.billable_units = 42.0
+        return await super().run(input, config)
+
+
+async def test_executor_reports_and_resets_billable_units() -> None:
+    executor = SeedExecutor(_TokenEchoSeed())
+    result = await executor.run_task("t1", {"text": "hi"}, None)
+    assert isinstance(result, protocol.TaskResultMsg)
+    assert result.billable_units == 42.0
+
+    plain = await SeedExecutor(EchoSeed()).run_task("t2", {"text": "hi"}, None)
+    assert isinstance(plain, protocol.TaskResultMsg)
+    assert plain.billable_units is None
+
+
 def test_seed_entry_point_loading() -> None:
     assert load_seed_class("echo") is EchoSeed
     with pytest.raises(SystemExit):

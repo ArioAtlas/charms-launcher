@@ -25,6 +25,7 @@ from enum import Enum
 import tomllib
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
+from charms_core.seed import SeedResources
 from charms_core.types import SeedPackageError
 
 MANIFEST_FILENAME = "manifest.json"
@@ -134,6 +135,28 @@ class EnvVarSpec(BaseModel):
         return self
 
 
+class SeedInstallSpec(BaseModel):
+    """
+    Package-index configuration for installing the seed's dependencies into
+    its isolated environment. Needed by seeds whose wheels live off PyPI
+    (e.g. CUDA torch builds: ``extra_index_urls:
+    ["https://download.pytorch.org/whl/cu128"]`` — the ``+cu128`` local
+    versions sort above the PyPI releases, so the GPU wheels win).
+    """
+
+    index_url: str | None = Field(default=None, description="replaces PyPI entirely")
+    extra_index_urls: list[str] = Field(
+        default_factory=list, description="searched in addition to PyPI"
+    )
+
+    @model_validator(mode="after")
+    def _check(self) -> "SeedInstallSpec":
+        for url in [self.index_url, *self.extra_index_urls]:
+            if url is not None and not url.startswith(("http://", "https://")):
+                raise ValueError(f"package index {url!r} must be an http(s) URL")
+        return self
+
+
 class SeedPackageManifest(BaseModel):
     """The ``manifest.json`` document at the root of every seed package."""
 
@@ -147,6 +170,8 @@ class SeedPackageManifest(BaseModel):
     options: list[SeedOption] = Field(default_factory=list)
     price: SeedPrice = Field(default_factory=SeedPrice)
     environment: list[EnvVarSpec] = Field(default_factory=list)
+    resources: SeedResources = Field(default_factory=SeedResources)
+    install: SeedInstallSpec = Field(default_factory=SeedInstallSpec)
 
     @model_validator(mode="after")
     def _check(self) -> "SeedPackageManifest":

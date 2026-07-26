@@ -67,6 +67,9 @@ class TaskResultMsg(BaseModel):
     task_id: str
     output: dict[str, Any]
     compute_ms: float = 0.0
+    # Seed-reported units (tokens, …) for seeds priced per unit rather than
+    # per compute-second; None when the seed reports nothing.
+    billable_units: float | None = None
 
 
 class TaskErrorMsg(BaseModel):
@@ -74,6 +77,7 @@ class TaskErrorMsg(BaseModel):
     task_id: str
     error: str
     compute_ms: float = 0.0
+    billable_units: float | None = None  # partial usage still bills (§12.3)
 
 
 class StreamOpenedMsg(BaseModel):
@@ -86,6 +90,7 @@ class StreamClosedMsg(BaseModel):
     stream_id: str
     final_output: dict[str, Any] | None = None
     compute_ms: float = 0.0
+    billable_units: float | None = None  # cumulative, for unit-priced seeds
 
 
 class StreamErrorMsg(BaseModel):

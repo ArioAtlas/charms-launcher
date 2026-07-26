@@ -62,6 +62,22 @@ def test_filter_runtime_deps() -> None:
     ]
 
 
+def test_dependency_install_args_include_manifest_indexes(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    archive = build_archive(tmp_path)
+    pulled = seedenv.extract_archive(archive, "demo")
+    pulled.package.manifest.install.extra_index_urls = [
+        "https://download.pytorch.org/whl/cu128"
+    ]
+    assert seedenv.dependency_install_args(pulled.package) == [
+        "--extra-index-url",
+        "https://download.pytorch.org/whl/cu128",
+        "numpy>=2",
+    ]
+    # no deps → no args at all (index flags alone would be a pip error)
+    pulled.package.pyproject.dependencies = ["charms-core"]
+    assert seedenv.dependency_install_args(pulled.package) == []
+
+
 def test_venv_python_shape(tmp_path) -> None:  # type: ignore[no-untyped-def]
     python = seedenv.venv_python(tmp_path)
     if sys.platform == "win32":

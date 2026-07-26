@@ -95,6 +95,24 @@ def filter_runtime_deps(dependencies: list[str]) -> list[str]:
     return kept
 
 
+def dependency_install_args(package: SeedPackage) -> list[str]:
+    """
+    pip args for the seed-dependency install step: the manifest's package
+    index flags (CUDA torch builds etc.) followed by the filtered deps.
+    Empty when the seed declares no installable dependencies.
+    """
+    deps = filter_runtime_deps(package.pyproject.dependencies)
+    if not deps:
+        return []
+    install = package.manifest.install
+    flags: list[str] = []
+    if install.index_url:
+        flags += ["--index-url", install.index_url]
+    for url in install.extra_index_urls:
+        flags += ["--extra-index-url", url]
+    return flags + deps
+
+
 def package_root(extract_dir: Path) -> Path | None:
     """The dir holding manifest.json: the extract root or its single subdir."""
     if (extract_dir / "manifest.json").is_file():
@@ -185,10 +203,10 @@ def ensure_env(pulled: PulledSeed, log: LogFn = print) -> Path:
     python = venv_python(env_dir)
     log("installing the launcher runtime …")
     _pip(python, "install", "--quiet", *runtime_sources())
-    deps = filter_runtime_deps(pulled.package.pyproject.dependencies)
-    if deps:
-        log("installing seed dependencies: " + ", ".join(deps))
-        _pip(python, "install", "--quiet", *deps)
+    dep_args = dependency_install_args(pulled.package)
+    if dep_args:
+        log("installing seed dependencies: " + " ".join(dep_args))
+        _pip(python, "install", "--quiet", *dep_args)
     log("installing the seed package …")
     _pip(python, "install", "--quiet", "--no-deps", str(pulled.root))
     (env_dir / METADATA_FILENAME).write_text(

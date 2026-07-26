@@ -24,8 +24,10 @@ pip install \
   "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=launcher"
 ```
 
-Python ≥ 3.12. `core/` is the platform's wire/SDK contracts (`charms_core`),
-vendored so the launcher needs nothing from the server monorepo.
+Python 3.12 (pinned via `.python-version` — pulled seed environments inherit
+the launcher's interpreter, and several model libraries cap at <3.13).
+`core/` is the platform's wire/SDK contracts (`charms_core`), vendored so
+the launcher needs nothing from the server monorepo.
 
 ## Quickstart
 

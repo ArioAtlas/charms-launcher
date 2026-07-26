@@ -568,7 +568,7 @@ class RuneManagerApp:
         rune = self._selected_rune()
         if rune is None:
             return
-        if IS_WINDOWS:
+        if sys.platform == "win32":  # literal check so mypy resolves os.startfile per-platform
             os.startfile(rune.log_path)  # noqa: S606
         else:
             opener = "xdg-open" if sys.platform == "linux" else "open"

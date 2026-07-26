@@ -65,9 +65,7 @@ def test_filter_runtime_deps() -> None:
 def test_dependency_install_args_include_manifest_indexes(tmp_path) -> None:  # type: ignore[no-untyped-def]
     archive = build_archive(tmp_path)
     pulled = seedenv.extract_archive(archive, "demo")
-    pulled.package.manifest.install.extra_index_urls = [
-        "https://download.pytorch.org/whl/cu128"
-    ]
+    pulled.package.manifest.install.extra_index_urls = ["https://download.pytorch.org/whl/cu128"]
     assert seedenv.dependency_install_args(pulled.package) == [
         "--extra-index-url",
         "https://download.pytorch.org/whl/cu128",

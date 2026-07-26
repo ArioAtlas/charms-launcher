@@ -1,11 +1,27 @@
 [project]
 name = "charms-core"
 version = "0.1.0"
-description = "Charms shared contracts: nodes, seeds, recipes, chunks, wire protocol"
+description = "Charms shared contracts: node & seed SDK, recipes, chunks, wire protocol, seed packages"
+readme = "README.md"
 requires-python = ">=3.12"
+authors = [{ name = "ArioAtlas" }]
+keywords = ["charms", "ai", "workflow", "distributed-computing", "sdk"]
+# NOTE: no license declared yet — decide one before the next release.
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic>=2.7",
 ]
+
+[project.urls]
+# The public home of these contracts (vendored into the launcher repo).
+Repository = "https://github.com/ArioAtlas/charms-launcher"
 
 [build-system]
 requires = ["hatchling"]

@@ -85,32 +85,51 @@ def runtime_sources() -> list[str]:
     return list(RUNTIME_GIT_REQUIREMENTS)
 
 
+def _requirement_name(dep: str) -> str:
+    """Canonical distribution name of a requirement string ('Torch>=2' → 'torch')."""
+    name = re.split(r"[<>=!~;\[\s@]", dep.strip(), maxsplit=1)[0]
+    return name.lower().replace("_", "-")
+
+
 def filter_runtime_deps(dependencies: list[str]) -> list[str]:
     """Drop charms-core in any requirement spelling — the runtime provides it."""
-    kept: list[str] = []
-    for dep in dependencies:
-        name = re.split(r"[<>=!~;\[\s]", dep.strip(), maxsplit=1)[0]
-        if name.lower().replace("_", "-") != "charms-core":
-            kept.append(dep)
-    return kept
+    return [dep for dep in dependencies if _requirement_name(dep) != "charms-core"]
 
 
-def dependency_install_args(package: SeedPackage) -> list[str]:
+def dependency_install_steps(package: SeedPackage) -> list[list[str]]:
     """
-    pip args for the seed-dependency install step: the manifest's package
-    index flags (CUDA torch builds etc.) followed by the filtered deps.
-    Empty when the seed declares no installable dependencies.
+    pip-install arg lists for the seed's dependencies, in order. Requirements
+    pinned via ``install.index_packages`` get their own exclusive-index step
+    FIRST (the only reliable way to pick CUDA torch wheels over newer PyPI
+    releases); everything else installs in one step with the manifest's
+    index/extra-index flags. Empty when nothing needs installing.
     """
     deps = filter_runtime_deps(package.pyproject.dependencies)
     if not deps:
         return []
     install = package.manifest.install
-    flags: list[str] = []
-    if install.index_url:
-        flags += ["--index-url", install.index_url]
-    for url in install.extra_index_urls:
-        flags += ["--extra-index-url", url]
-    return flags + deps
+    index_packages = {
+        key.lower().replace("_", "-"): url for key, url in install.index_packages.items()
+    }
+
+    pinned: dict[str, list[str]] = {}
+    rest: list[str] = []
+    for dep in deps:
+        index = index_packages.get(_requirement_name(dep))
+        if index is not None:
+            pinned.setdefault(index, []).append(dep)
+        else:
+            rest.append(dep)
+
+    steps = [["--index-url", index, *group] for index, group in pinned.items()]
+    if rest:
+        flags: list[str] = []
+        if install.index_url:
+            flags += ["--index-url", install.index_url]
+        for url in install.extra_index_urls:
+            flags += ["--extra-index-url", url]
+        steps.append([*flags, *rest])
+    return steps
 
 
 def package_root(extract_dir: Path) -> Path | None:
@@ -203,10 +222,9 @@ def ensure_env(pulled: PulledSeed, log: LogFn = print) -> Path:
     python = venv_python(env_dir)
     log("installing the launcher runtime …")
     _pip(python, "install", "--quiet", *runtime_sources())
-    dep_args = dependency_install_args(pulled.package)
-    if dep_args:
-        log("installing seed dependencies: " + " ".join(dep_args))
-        _pip(python, "install", "--quiet", *dep_args)
+    for step in dependency_install_steps(pulled.package):
+        log("installing seed dependencies: " + " ".join(step))
+        _pip(python, "install", "--quiet", *step)
     log("installing the seed package …")
     _pip(python, "install", "--quiet", "--no-deps", str(pulled.root))
     (env_dir / METADATA_FILENAME).write_text(

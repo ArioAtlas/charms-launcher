@@ -62,18 +62,31 @@ def test_filter_runtime_deps() -> None:
     ]
 
 
-def test_dependency_install_args_include_manifest_indexes(tmp_path) -> None:  # type: ignore[no-untyped-def]
+CU128 = "https://download.pytorch.org/whl/cu128"
+
+
+def test_dependency_install_steps(tmp_path) -> None:  # type: ignore[no-untyped-def]
     archive = build_archive(tmp_path)
     pulled = seedenv.extract_archive(archive, "demo")
-    pulled.package.manifest.install.extra_index_urls = ["https://download.pytorch.org/whl/cu128"]
-    assert seedenv.dependency_install_args(pulled.package) == [
-        "--extra-index-url",
-        "https://download.pytorch.org/whl/cu128",
-        "numpy>=2",
+
+    # extra index flags apply to the general step
+    pulled.package.manifest.install.extra_index_urls = [CU128]
+    assert seedenv.dependency_install_steps(pulled.package) == [
+        ["--extra-index-url", CU128, "numpy>=2"]
     ]
-    # no deps → no args at all (index flags alone would be a pip error)
+
+    # index_packages get an exclusive-index step FIRST (any name spelling)
+    pulled.package.manifest.install.extra_index_urls = []
+    pulled.package.manifest.install.index_packages = {"torch": CU128}
+    pulled.package.pyproject.dependencies = ["charms-core", "Torch>=2.11", "numpy>=2"]
+    assert seedenv.dependency_install_steps(pulled.package) == [
+        ["--index-url", CU128, "Torch>=2.11"],
+        ["numpy>=2"],
+    ]
+
+    # no installable deps → no steps at all
     pulled.package.pyproject.dependencies = ["charms-core"]
-    assert seedenv.dependency_install_args(pulled.package) == []
+    assert seedenv.dependency_install_steps(pulled.package) == []
 
 
 def test_venv_python_shape(tmp_path) -> None:  # type: ignore[no-untyped-def]

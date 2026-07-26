@@ -138,20 +138,25 @@ class EnvVarSpec(BaseModel):
 class SeedInstallSpec(BaseModel):
     """
     Package-index configuration for installing the seed's dependencies into
-    its isolated environment. Needed by seeds whose wheels live off PyPI
-    (e.g. CUDA torch builds: ``extra_index_urls:
-    ["https://download.pytorch.org/whl/cu128"]`` — the ``+cu128`` local
-    versions sort above the PyPI releases, so the GPU wheels win).
+    its isolated environment. ``index_packages`` pins named requirements to a
+    specific index, installed in their own exclusive step — the reliable way
+    to get CUDA torch builds (``{"torch":
+    "https://download.pytorch.org/whl/cu128"}``): with a mere extra index,
+    a newer PyPI release outranks the CUDA wheels.
     """
 
     index_url: str | None = Field(default=None, description="replaces PyPI entirely")
     extra_index_urls: list[str] = Field(
         default_factory=list, description="searched in addition to PyPI"
     )
+    index_packages: dict[str, str] = Field(
+        default_factory=dict,
+        description="package name → index URL; installed first, from that index only",
+    )
 
     @model_validator(mode="after")
     def _check(self) -> "SeedInstallSpec":
-        for url in [self.index_url, *self.extra_index_urls]:
+        for url in [self.index_url, *self.extra_index_urls, *self.index_packages.values()]:
             if url is not None and not url.startswith(("http://", "https://")):
                 raise ValueError(f"package index {url!r} must be an http(s) URL")
         return self

@@ -1,5 +1,6 @@
 from charms_core.chunk import Chunk
 from charms_core.types import Modality
+
 from charms_seed_echo_stream import EchoStreamSeed
 
 

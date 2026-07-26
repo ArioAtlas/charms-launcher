@@ -8,7 +8,6 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "charms-core",
     "charms-launcher",
     "charms-seed-echo",
     "charms-seed-echo-stream",
@@ -97,13 +96,14 @@ wheels = [
 [[package]]
 name = "charms-core"
 version = "0.1.0"
-source = { editable = "core" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.7" }]
+sdist = { url = "https://files.pythonhosted.org/packages/ae/2c/36955de7ba5ec520c112db3b654a36aae91141ff548bc0c3a763c7a33bbb/charms_core-0.1.0.tar.gz", hash = "sha256:b7beb619ada7e2b4ed49885fce6e633e5182a9f69c252769ef8ea590ca006fca", size = 23527, upload-time = "2026-07-26T12:13:31.021Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/96/54ea262d5ec5d23c9d20e40ebc034e13720c642f9f923773e3838e7b7d74/charms_core-0.1.0-py3-none-any.whl", hash = "sha256:163fbfeb67fd55da2eb5a33a955621a13487f854d3d8e96780df96a7acc18bda", size = 21003, upload-time = "2026-07-26T12:13:29.732Z" },
+]
 
 [[package]]
 name = "charms-launcher"
@@ -118,7 +118,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charms-core", editable = "core" },
+    { name = "charms-core", specifier = "==0.1.0" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "websockets", specifier = ">=14" },

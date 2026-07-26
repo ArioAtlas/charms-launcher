@@ -15,19 +15,17 @@ connected to a Charms server, consuming tasks (docker *container*).
 ## Install
 
 ```bash
-# from a checkout (uv workspace: core + launcher + demo seeds)
+# from a checkout (uv workspace: launcher + demo seeds)
 uv sync --all-packages
 
 # or straight from GitHub
-pip install \
-  "charms-core @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=core" \
-  "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=launcher"
+pip install "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=launcher"
 ```
 
 Python 3.12 (pinned via `.python-version` — pulled seed environments inherit
-the launcher's interpreter, and several model libraries cap at <3.13).
-`core/` is the platform's wire/SDK contracts (`charms_core`), vendored so
-the launcher needs nothing from the server monorepo.
+the launcher's interpreter, and several model libraries cap at <3.13). The
+platform's wire/SDK contracts come from
+[charms-core on PyPI](https://pypi.org/project/charms-core/).
 
 ## Quickstart
 
@@ -92,10 +90,10 @@ on the Charms web UI → Seeds → *Build a seed*.
 
 ## Protocol compatibility
 
-`core/` is a vendored copy of the `charms` monorepo's `core/` — the
-WebSocket protocol and Seed SDK shared with the server. It must stay in sync
-with the server you connect to: when the monorepo's core changes, copy it
-over verbatim and cut a release.
+The launcher pins an exact [charms-core](https://pypi.org/project/charms-core/)
+version — the WebSocket protocol and Seed SDK shared with the server. It
+must match the server you connect to: when the monorepo's core changes, a
+new charms-core release is published and the pin here is bumped.
 
 ## Development
 

@@ -7,8 +7,8 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 from charms_core.types import SeedPackageError
+
 from charms_launcher import seedenv
 
 MANIFEST = {
@@ -100,8 +100,8 @@ def test_venv_python_shape(tmp_path) -> None:  # type: ignore[no-untyped-def]
 def test_runtime_sources_are_this_checkout() -> None:
     sources = seedenv.runtime_sources()
     assert sources != list(seedenv.RUNTIME_GIT_REQUIREMENTS)
-    assert [Path(s).name for s in sources] == ["core", "launcher"]
-    assert all((Path(s) / "pyproject.toml").is_file() for s in sources)
+    assert [Path(s).name for s in sources] == ["launcher"]
+    assert (Path(sources[0]) / "pyproject.toml").is_file()
 
 
 def test_extract_and_reload(tmp_path) -> None:  # type: ignore[no-untyped-def]

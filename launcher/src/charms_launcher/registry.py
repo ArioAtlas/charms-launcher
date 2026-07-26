@@ -9,10 +9,10 @@ import contextlib
 from pathlib import Path
 
 import httpx
-from pydantic import BaseModel, Field
-
 from charms_core.package import PyprojectInfo, SeedPackageManifest
 from charms_core.types import ConfigurationError
+from pydantic import BaseModel, Field
+
 from charms_launcher.config import LauncherConfig, require_auth
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)

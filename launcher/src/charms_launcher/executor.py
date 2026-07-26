@@ -4,10 +4,9 @@ import asyncio
 import time
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
-
 from charms_core import protocol
 from charms_core.seed import Seed
+from pydantic import BaseModel, ValidationError
 
 
 class SeedExecutor:

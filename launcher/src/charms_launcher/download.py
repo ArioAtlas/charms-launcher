@@ -5,7 +5,6 @@ import hashlib
 from pathlib import Path
 
 import httpx
-
 from charms_core.seed import SeedArtifact
 from charms_core.types import ConfigurationError
 

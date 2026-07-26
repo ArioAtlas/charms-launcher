@@ -1,9 +1,9 @@
-# Virtual workspace root. `core/` is a vendored copy of the charms monorepo's
-# charms-core (the wire/SDK contracts shared with the server) — keep it
-# byte-identical and sync it when the monorepo's core changes.
+# Virtual workspace root. charms-core (the wire/SDK contracts shared with
+# the server) comes from PyPI — the launcher pins the exact version matching
+# the server protocol; releases are cut from the charms monorepo.
 
 [tool.uv.workspace]
-members = ["core", "launcher", "examples/seeds/*"]
+members = ["launcher", "examples/seeds/*"]
 
 [dependency-groups]
 dev = [
@@ -21,16 +21,10 @@ addopts = ["--import-mode=importlib"]
 [tool.ruff]
 line-length = 100
 src = ["launcher/src", "examples/seeds/echo/src", "examples/seeds/echo_stream/src"]
-# core/ is vendored verbatim (linted in the monorepo with its own ruff pin).
-extend-exclude = ["*.md", "core"]
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-
-# core/ is excluded from linting (vendored), so ruff can't infer charms_core
-# as first-party from `src` — declare the import layout explicitly.
-[tool.ruff.lint.isort]
-known-first-party = ["charms_core", "charms_launcher"]
 
 [tool.mypy]
 python_version = "3.12"

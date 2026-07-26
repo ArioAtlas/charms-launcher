@@ -13,11 +13,11 @@ import time
 from typing import Any
 
 import websockets
-
 from charms_core import protocol
 from charms_core.chunk import Chunk, decode_chunk_message, encode_chunk_message
 from charms_core.seed import Seed, SeedDescriptor
 from charms_core.types import ProtocolError
+
 from charms_launcher.executor import SeedExecutor
 
 logger = logging.getLogger(__name__)

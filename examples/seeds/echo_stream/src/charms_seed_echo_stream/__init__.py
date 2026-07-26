@@ -4,11 +4,10 @@ Echoes every TEXT chunk back uppercased, and returns the concatenation of
 everything it saw at stream close (so both output modes can be demonstrated).
 """
 
-from pydantic import BaseModel, Field
-
 from charms_core.chunk import Chunk
 from charms_core.seed import Seed, SeedContext, SeedManifest
 from charms_core.types import Modality, PortSchema
+from pydantic import BaseModel, Field
 
 
 class EchoStreamInput(BaseModel):

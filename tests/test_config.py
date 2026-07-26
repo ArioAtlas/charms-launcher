@@ -1,8 +1,8 @@
 """Config file round-trips and environment overrides."""
 
 import pytest
-
 from charms_core.types import ConfigurationError
+
 from charms_launcher import config as cfg
 
 

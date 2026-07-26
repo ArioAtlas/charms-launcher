@@ -21,11 +21,11 @@ from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-
 from charms_core.package import validate_environment
 from charms_core.seed import Seed, SeedContext, SeedDescriptor
 from charms_core.types import CharmsError
+from dotenv import load_dotenv
+
 from charms_launcher import config as cfg
 from charms_launcher import registry, seedenv
 from charms_launcher.client import LauncherClient

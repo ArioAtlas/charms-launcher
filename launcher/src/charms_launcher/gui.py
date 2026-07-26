@@ -36,6 +36,7 @@ from tkinter import messagebox, ttk
 from typing import Any
 
 from charms_core.package import EnvVarSpec, SeedPackageManifest, validate_environment
+
 from charms_launcher import config as cfg
 from charms_launcher import registry, seedenv
 

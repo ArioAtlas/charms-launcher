@@ -2,8 +2,8 @@
 
 import httpx
 import pytest
-
 from charms_core.types import ConfigurationError
+
 from charms_launcher import registry
 from charms_launcher.config import LauncherConfig
 

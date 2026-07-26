@@ -1,9 +1,8 @@
 """Echo seed — dependency-free dispatch demo proving the distributed path."""
 
-from pydantic import BaseModel, Field
-
 from charms_core.seed import Seed, SeedContext, SeedManifest
 from charms_core.types import Modality, PortSchema
+from pydantic import BaseModel, Field
 
 
 class EchoInput(BaseModel):

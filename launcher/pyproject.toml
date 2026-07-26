@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Run Charms seeds as Runes: the launcher CLI and the Rune Manager GUI"
 requires-python = ">=3.12"
 dependencies = [
-    "charms-core",
+    # Exact pin: the wire protocol must match the server release-for-release.
+    "charms-core==0.1.0",
     "websockets>=14",
     "httpx>=0.28",
     "python-dotenv>=1.0",
@@ -13,9 +14,6 @@ dependencies = [
 [project.scripts]
 charms-launcher = "charms_launcher.cli:main"
 charms-rune-manager = "charms_launcher.gui:main"
-
-[tool.uv.sources]
-charms-core = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -6,8 +6,8 @@ A pulled seed lives in two places under ``~/.charms``:
 - ``packages/<seed_id>/`` — the extracted archive plus ``charms-package.json``
   (parsed metadata + archive sha256, written at pull time).
 - ``envs/<seed_id>/``     — a virtualenv holding the launcher runtime
-  (charms_launcher + its vendored charms_core), the seed's declared
-  dependencies, and the seed package itself.
+  (charms_launcher, whose pin brings charms_core from PyPI), the seed's
+  declared dependencies, and the seed package itself.
 
 The seed's ``charms-core`` dependency (if declared) is filtered out — the
 runtime provides those modules. Running a pulled seed spawns
@@ -28,13 +28,13 @@ from pathlib import Path
 
 from charms_core.package import SeedPackage, load_seed_package
 from charms_core.types import ConfigurationError, SeedPackageError
+
 from charms_launcher.config import LauncherConfig, envs_dir, packages_dir
 from charms_launcher.registry import download_package
 
 # Used when the launcher runs from an installed wheel (no repo checkout on
-# disk to pip-install into seed envs).
+# disk to pip-install into seed envs). charms-core resolves from PyPI.
 RUNTIME_GIT_REQUIREMENTS = (
-    "charms-core @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=core",
     "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=launcher",
 )
 
@@ -76,12 +76,19 @@ def venv_python(env_dir: Path) -> Path:
 
 
 def runtime_sources() -> list[str]:
-    """What to pip-install to provide the launcher runtime inside a seed env."""
+    """
+    What to pip-install to provide the launcher runtime inside a seed env.
+    The launcher package's own charms-core pin resolves from PyPI.
+    """
     for parent in Path(__file__).resolve().parents:
-        core = parent / "core" / "pyproject.toml"
-        launcher = parent / "launcher" / "pyproject.toml"
-        if core.is_file() and launcher.is_file():
-            return [str(core.parent), str(launcher.parent)]
+        pyproject = parent / "pyproject.toml"
+        if pyproject.is_file():
+            try:
+                text = pyproject.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if 'name = "charms-launcher"' in text:
+                return [str(parent)]
     return list(RUNTIME_GIT_REQUIREMENTS)
 
 

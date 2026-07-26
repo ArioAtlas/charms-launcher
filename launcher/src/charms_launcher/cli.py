@@ -122,6 +122,7 @@ def cmd_run(args: Any) -> None:
     config = cfg.load_config()
     if args.server == cfg.DEFAULT_SERVER_URL and config.server_url:
         args.server = config.server_url
+    config.server_url = args.server  # an explicit --server wins for registry pulls too
     if find_seed_class(args.seed) is not None:
         cfg.require_auth(config)
         try:

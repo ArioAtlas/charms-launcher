@@ -5,7 +5,7 @@ description = "Run Charms seeds as Runes: the launcher CLI and the Rune Manager 
 requires-python = ">=3.12"
 dependencies = [
     # Exact pin: the wire protocol must match the server release-for-release.
-    "charms-core==0.1.0",
+    "charms-core==0.1.1",
     "websockets>=14",
     "httpx>=0.28",
     "python-dotenv>=1.0",

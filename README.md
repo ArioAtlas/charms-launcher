@@ -6,7 +6,8 @@ This repo ships two entry points in one package:
 - **`charms-launcher`** — the CLI: authenticate, search the seed registry,
   pull seed packages, and serve them as Runes.
 - **`charms-rune-manager`** — a local Tkinter GUI that supervises runes:
-  start/stop, log tails, GPU/VRAM checks, registry search and pull.
+  start/stop, log tails, GPU/VRAM checks, registry search and pull, and
+  one-click updates when the registry has a newer seed version.
 
 Vocabulary: a **Seed** is a module that loads a model and exposes it as a
 runnable interface (docker *image*); a **Rune** is a running Seed instance

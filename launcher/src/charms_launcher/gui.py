@@ -10,6 +10,9 @@ What it does
 - Lists seeds from three sources: locally installed (``charms.seeds`` entry
   points), pulled registry packages (``~/.charms/packages``), and — via the
   search box — remote packages you may pull (yours + public ones).
+- Shows each seed's version and checks the registry in the background: a
+  pulled seed whose registry archive differs shows "old → new" in the
+  Version column, and the Update button re-pulls it (rebuilding its env).
 - Checks per-seed prerequisites before a start: environment variables
   (static map for bundled seeds, the package manifest's rules for pulled
   ones), GPU free VRAM vs the manifest requirement, and the rune key.
@@ -129,6 +132,8 @@ class SeedInfo:
     source: str = "local"  # "local" | "pulled" | "remote"
     title: str = ""
     description: str = ""
+    version: str = ""
+    sha256: str = ""  # archive digest (pulled/remote) — the update signal
     vram_mb: int = 0
     notes: str = ""
     load_error: str | None = None
@@ -145,6 +150,7 @@ def discover_seeds() -> list[SeedInfo]:
                 source="local",
                 title=manifest.name,
                 description=manifest.description,
+                version=manifest.version,
                 vram_mb=manifest.resources.vram_mb,
                 notes=manifest.resources.notes,
             )
@@ -161,6 +167,8 @@ def discover_seeds() -> list[SeedInfo]:
             source="pulled",
             title=manifest.name,
             description=manifest.description,
+            version=manifest.version,
+            sha256=pulled.sha256,
             vram_mb=manifest.resources.vram_mb,
             notes=manifest.resources.notes,
             env_specs=list(manifest.environment),
@@ -182,6 +190,30 @@ def seed_issues(seed: SeedInfo, gpu: GpuInfo | None) -> list[str]:
         elif gpu.free_mb < seed.vram_mb:
             issues.append(f"needs {seed.vram_mb} MB free VRAM (only {gpu.free_mb} MB free)")
     return issues
+
+
+def update_available(seed: SeedInfo, latest: registry.SeedPackageInfo | None) -> bool:
+    """True when the registry archive differs from a pulled seed's content.
+
+    Compares archive sha256 (the same freshness key ``env_ready`` uses), not
+    version strings — it also catches a republished package of the same
+    version, and needs no semver parsing.
+    """
+    return (
+        seed.source == "pulled"
+        and latest is not None
+        and bool(latest.sha256 and seed.sha256)
+        and latest.sha256 != seed.sha256
+    )
+
+
+def version_cell(seed: SeedInfo, latest: registry.SeedPackageInfo | None) -> str:
+    """Version column text; flags pulled seeds the registry has newer bits for."""
+    if latest is not None and update_available(seed, latest):
+        if latest.version and latest.version != seed.version:
+            return f"{seed.version} → {latest.version}"
+        return f"{seed.version} (republished)"
+    return seed.version or "—"
 
 
 # ---------------------------------------------------------------------------
@@ -267,11 +299,14 @@ class RuneManagerApp:
         self.gpu = probe_gpu()
         self.seeds = discover_seeds()
         self.remote_seeds: list[SeedInfo] = []
+        self.registry_info: dict[str, registry.SeedPackageInfo] = {}
         self.runes: dict[str, RuneProc] = {}
         self._uid = 0
+        self._updating: set[str] = set()
         self._log_rendered_for: tuple[str, int] | None = None
         self._build_ui()
         self._refresh_seeds()
+        self._check_updates()
         self._tick()
         self._slow_refresh()
         root.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -307,16 +342,17 @@ class RuneManagerApp:
         self.search_status = ttk.Label(search_bar, text="", foreground="#888888")
         self.search_status.pack(side="left", padx=(10, 0))
 
-        columns = ("seed", "source", "vram", "status", "description")
+        columns = ("seed", "source", "version", "vram", "status", "description")
         self.seed_tree = ttk.Treeview(
             seed_frame, columns=columns, show="headings", selectmode="browse", height=8
         )
         for col, title, width, stretch in (
             ("seed", "Seed", 130, False),
             ("source", "Source", 70, False),
+            ("version", "Version", 100, False),
             ("vram", "VRAM (MB)", 90, False),
-            ("status", "Requirements", 340, True),
-            ("description", "Description", 300, True),
+            ("status", "Requirements", 300, True),
+            ("description", "Description", 280, True),
         ):
             self.seed_tree.heading(col, text=title)
             self.seed_tree.column(col, width=width, stretch=stretch, anchor="w")
@@ -331,6 +367,10 @@ class RuneManagerApp:
             seed_buttons, text="Start Rune", command=self._start_selected
         )
         self.start_button.pack(side="left")
+        self.update_button = ttk.Button(
+            seed_buttons, text="Update seed", command=self._update_selected
+        )
+        self.update_button.pack(side="left", padx=(6, 0))
         self.vars_button = ttk.Button(
             seed_buttons, text="Set variables…", command=self._set_variables
         )
@@ -338,18 +378,20 @@ class RuneManagerApp:
         ttk.Button(seed_buttons, text="Server settings…", command=self._server_settings).pack(
             side="left", padx=(6, 0)
         )
-        ttk.Button(seed_buttons, text="Refresh", command=self._slow_refresh_now).pack(
+        ttk.Button(seed_buttons, text="Refresh", command=self._manual_refresh).pack(
             side="left", padx=(6, 0)
         )
+        self.seed_status = ttk.Label(seed_buttons, text="", foreground="#888888")
+        self.seed_status.pack(side="left", padx=(10, 0))
 
         # -- runes ------------------------------------------------------
         rune_frame = ttk.Labelframe(
             panes, text="Running runes  (select a row and press Delete to kill)"
         )
         panes.add(rune_frame, weight=3)
-        columns = ("seed", "pid", "status", "uptime", "log")
+        rune_columns = ("seed", "pid", "status", "uptime", "log")
         self.rune_tree = ttk.Treeview(
-            rune_frame, columns=columns, show="headings", selectmode="browse", height=6
+            rune_frame, columns=rune_columns, show="headings", selectmode="browse", height=6
         )
         for col, title, width, stretch in (
             ("seed", "Seed", 130, False),
@@ -409,7 +451,14 @@ class RuneManagerApp:
                 "",
                 "end",
                 iid=seed.id,
-                values=(seed.id, seed.source, seed.vram_mb or "—", status, seed.description),
+                values=(
+                    seed.id,
+                    seed.source,
+                    version_cell(seed, self.registry_info.get(seed.id)),
+                    seed.vram_mb or "—",
+                    status,
+                    seed.description,
+                ),
                 tags=() if not issues else ("unavailable",),
             )
         for iid in selected:
@@ -429,8 +478,15 @@ class RuneManagerApp:
 
     def _update_buttons(self) -> None:
         seed = self._selected_seed()
-        startable = seed is not None and not seed_issues(seed, self.gpu)
+        busy = seed is not None and seed.id in self._updating
+        startable = seed is not None and not busy and not seed_issues(seed, self.gpu)
         self.start_button.state(["!disabled"] if startable else ["disabled"])
+        updatable = (
+            seed is not None
+            and not busy
+            and update_available(seed, self.registry_info.get(seed.id))
+        )
+        self.update_button.state(["!disabled"] if updatable else ["disabled"])
         rune = self._selected_rune()
         self.kill_button.state(["!disabled"] if rune else ["disabled"])
         self.log_button.state(["!disabled"] if rune else ["disabled"])
@@ -446,29 +502,55 @@ class RuneManagerApp:
         self.search_status.configure(text="searching…")
 
         def worker() -> None:
+            packages: list[registry.SeedPackageInfo] = []
             try:
                 packages = registry.search_packages(self.config, query=query)
-                results = [
-                    SeedInfo(
-                        id=p.id,
-                        source="remote",
-                        title=p.name,
-                        description=p.description or p.name,
-                    )
-                    for p in packages
-                ]
-                message = f"{len(results)} result(s)"
+                message = f"{len(packages)} result(s)"
             except Exception as exc:
-                results = []
                 message = str(exc)
-            self.root.after(0, lambda: self._search_done(results, message))
+            results = [
+                SeedInfo(
+                    id=p.id,
+                    source="remote",
+                    title=p.name,
+                    description=p.description or p.name,
+                    version=p.version,
+                    sha256=p.sha256,
+                )
+                for p in packages
+            ]
+            self.root.after(0, lambda: self._search_done(packages, results, message))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _search_done(self, results: list[SeedInfo], message: str) -> None:
+    def _search_done(
+        self,
+        packages: list[registry.SeedPackageInfo],
+        results: list[SeedInfo],
+        message: str,
+    ) -> None:
+        self.registry_info.update({p.id: p for p in packages})
         self.remote_seeds = results
         self.search_button.state(["!disabled"])
         self.search_status.configure(text=message)
+        self._refresh_seeds()
+
+    def _check_updates(self) -> None:
+        """Fetch registry listings in the background to spot newer seed content."""
+        if not self.config.rune_key:
+            return
+
+        def worker() -> None:
+            try:
+                packages = registry.search_packages(self.config)
+            except Exception:
+                return  # offline or unauthenticated — show local versions only
+            self.root.after(0, lambda: self._registry_loaded(packages))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _registry_loaded(self, packages: list[registry.SeedPackageInfo]) -> None:
+        self.registry_info.update({p.id: p for p in packages})
         self._refresh_seeds()
 
     # ---------------------------------------------------------- actions
@@ -539,6 +621,55 @@ class RuneManagerApp:
         )
         self.rune_tree.selection_set(uid)
         self._update_buttons()
+
+    def _update_selected(self) -> None:
+        """Re-pull the selected seed (background); the env rebuilds on the new sha."""
+        seed = self._selected_seed()
+        if seed is None or seed.id in self._updating:
+            return
+        latest = self.registry_info.get(seed.id)
+        if latest is None or not update_available(seed, latest):
+            return
+        running = [r for r in self.runes.values() if r.seed_id == seed.id and r.alive()]
+        if running:
+            # The old env cannot be rebuilt while a rune holds it open.
+            if not messagebox.askyesno(
+                "Rune running",
+                f"{len(running)} '{seed.id}' rune(s) are running from the current "
+                "environment.\nKill them and update?",
+                parent=self.root,
+            ):
+                return
+            for rune in running:
+                kill_tree(rune.proc)
+        self._updating.add(seed.id)
+        self._update_buttons()
+        self.seed_status.configure(text=f"updating '{seed.id}' to v{latest.version} …")
+
+        def progress(message: str) -> None:
+            self.root.after(0, lambda: self.seed_status.configure(text=message))
+
+        def worker() -> None:
+            try:
+                seedenv.pull(self.config, seed.id, log=progress)
+                error = ""
+            except Exception as exc:
+                error = str(exc)
+            self.root.after(0, lambda: self._update_done(seed.id, error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _update_done(self, seed_id: str, error: str) -> None:
+        self._updating.discard(seed_id)
+        if error:
+            self.seed_status.configure(text=f"update of '{seed_id}' failed")
+            messagebox.showerror(
+                "Update failed", f"Could not update '{seed_id}':\n\n{error}", parent=self.root
+            )
+        else:
+            self.seed_status.configure(text=f"'{seed_id}' updated ✓")
+        self.seeds = discover_seeds()
+        self._refresh_seeds()
 
     def _kill_selected(self) -> None:
         rune = self._selected_rune()
@@ -637,6 +768,7 @@ class RuneManagerApp:
                     self.config = candidate
                     cfg.save_config(candidate)
                     self._update_status_bar()
+                    self._check_updates()
                     dialog.destroy()
                     messagebox.showinfo(
                         "Connected",
@@ -735,6 +867,11 @@ class RuneManagerApp:
         self.seeds = discover_seeds()
         self._refresh_seeds()
         self._update_status_bar()
+
+    def _manual_refresh(self) -> None:
+        """Refresh button: local state plus a fresh registry version check."""
+        self._slow_refresh_now()
+        self._check_updates()
 
     def _render_log(self) -> None:
         rune = self._selected_rune()

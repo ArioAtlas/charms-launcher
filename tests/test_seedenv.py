@@ -70,10 +70,11 @@ def test_venv_python_shape(tmp_path) -> None:  # type: ignore[no-untyped-def]
         assert python == tmp_path / "bin" / "python"
 
 
-def test_runtime_source_is_this_checkout() -> None:
-    source = seedenv.runtime_source()
-    assert source != seedenv.RUNTIME_GIT_REQUIREMENT
-    assert (Path(source) / "pyproject.toml").is_file()
+def test_runtime_sources_are_this_checkout() -> None:
+    sources = seedenv.runtime_sources()
+    assert sources != list(seedenv.RUNTIME_GIT_REQUIREMENTS)
+    assert [Path(s).name for s in sources] == ["core", "launcher"]
+    assert all((Path(s) / "pyproject.toml").is_file() for s in sources)
 
 
 def test_extract_and_reload(tmp_path) -> None:  # type: ignore[no-untyped-def]

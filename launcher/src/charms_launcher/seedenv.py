@@ -33,7 +33,10 @@ from charms_launcher.registry import download_package
 
 # Used when the launcher runs from an installed wheel (no repo checkout on
 # disk to pip-install into seed envs).
-RUNTIME_GIT_REQUIREMENT = "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher"
+RUNTIME_GIT_REQUIREMENTS = (
+    "charms-core @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=core",
+    "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=launcher",
+)
 
 METADATA_FILENAME = "charms-package.json"
 
@@ -72,18 +75,14 @@ def venv_python(env_dir: Path) -> Path:
     return env_dir / "bin" / "python"
 
 
-def runtime_source() -> str:
+def runtime_sources() -> list[str]:
     """What to pip-install to provide the launcher runtime inside a seed env."""
     for parent in Path(__file__).resolve().parents:
-        pyproject = parent / "pyproject.toml"
-        if pyproject.is_file():
-            try:
-                text = pyproject.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            if 'name = "charms-launcher"' in text:
-                return str(parent)
-    return RUNTIME_GIT_REQUIREMENT
+        core = parent / "core" / "pyproject.toml"
+        launcher = parent / "launcher" / "pyproject.toml"
+        if core.is_file() and launcher.is_file():
+            return [str(core.parent), str(launcher.parent)]
+    return list(RUNTIME_GIT_REQUIREMENTS)
 
 
 def filter_runtime_deps(dependencies: list[str]) -> list[str]:
@@ -185,7 +184,7 @@ def ensure_env(pulled: PulledSeed, log: LogFn = print) -> Path:
         raise ConfigurationError(f"could not create a virtualenv: {result.stderr.strip()}")
     python = venv_python(env_dir)
     log("installing the launcher runtime …")
-    _pip(python, "install", "--quiet", runtime_source())
+    _pip(python, "install", "--quiet", *runtime_sources())
     deps = filter_runtime_deps(pulled.package.pyproject.dependencies)
     if deps:
         log("installing seed dependencies: " + ", ".join(deps))

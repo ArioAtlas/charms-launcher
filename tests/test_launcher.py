@@ -2,11 +2,11 @@ import os
 from pathlib import Path
 
 import pytest
-from charms_seed_echo import EchoSeed
 
 from charms_core import protocol
 from charms_launcher.cli import _ws_url, load_env_file, load_seed_class
 from charms_launcher.executor import SeedExecutor
+from charms_seed_echo import EchoSeed
 
 
 async def test_executor_runs_task() -> None:

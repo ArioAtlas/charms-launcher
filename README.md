@@ -15,15 +15,17 @@ connected to a Charms server, consuming tasks (docker *container*).
 ## Install
 
 ```bash
-# from a checkout
-uv sync                      # or: pip install .
+# from a checkout (uv workspace: core + launcher + demo seeds)
+uv sync --all-packages
 
 # or straight from GitHub
-pip install "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher"
+pip install \
+  "charms-core @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=core" \
+  "charms-launcher @ git+https://github.com/ArioAtlas/charms-launcher#subdirectory=launcher"
 ```
 
-Python ≥ 3.12. The distribution bundles `charms_core` (the platform's wire
-and SDK contracts), so nothing else is needed.
+Python ≥ 3.12. `core/` is the platform's wire/SDK contracts (`charms_core`),
+vendored so the launcher needs nothing from the server monorepo.
 
 ## Quickstart
 
@@ -88,18 +90,18 @@ on the Charms web UI → Seeds → *Build a seed*.
 
 ## Protocol compatibility
 
-`src/charms_core` is a vendored copy of the `charms` monorepo's
-`core/src/charms_core` — the WebSocket protocol and Seed SDK shared with the
-server. It must stay in sync with the server you connect to: when the
-monorepo's core changes, copy it over verbatim and cut a release.
+`core/` is a vendored copy of the `charms` monorepo's `core/` — the
+WebSocket protocol and Seed SDK shared with the server. It must stay in sync
+with the server you connect to: when the monorepo's core changes, copy it
+over verbatim and cut a release.
 
 ## Development
 
 ```bash
-uv sync                 # installs dev deps + the demo seeds
+uv sync --all-packages  # installs dev deps + the demo seeds
 uv run pytest -v
 uv run ruff check . && uv run ruff format --check .
-uv run mypy src
+uv run mypy launcher/src
 ```
 
 Known trust note (inherited from the platform): a rune owner can technically

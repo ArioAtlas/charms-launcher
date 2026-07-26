@@ -1,7 +1,6 @@
-from charms_seed_echo_stream import EchoStreamSeed
-
 from charms_core.chunk import Chunk
 from charms_core.types import Modality
+from charms_seed_echo_stream import EchoStreamSeed
 
 
 def _chunk(seq: int, text: str) -> Chunk:

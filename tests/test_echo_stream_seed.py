@@ -39,3 +39,13 @@ async def test_streams_are_isolated() -> None:
     await seed.stream_chunk("b", _chunk(0, "bb"))
     assert (await seed.stream_close("a")).text == "AA"  # type: ignore[union-attr]
     assert (await seed.stream_close("b")).text == "BB"  # type: ignore[union-attr]
+
+
+def test_manifest_declares_work_specs() -> None:
+    manifest = EchoStreamSeed.manifest
+    assert manifest.version == "0.2.0"
+    assert manifest.work is not None
+    assert manifest.work.meter == "pre"
+    assert manifest.stream_work is not None
+    assert manifest.stream_work.meter == "post"
+    assert manifest.stream_work.unit == "stream_second"

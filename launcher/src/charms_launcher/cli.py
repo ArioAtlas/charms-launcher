@@ -153,18 +153,29 @@ def cmd_login(args: Any) -> None:
     print(f"saved to {path}")
 
 
+def _pricing_cell(package: registry.SeedPackageInfo) -> str:
+    """Work-unit pricing when the seed declares it; the legacy price otherwise.
+
+    Post-metered units are flagged: their up-front quote is an estimate and the
+    final bill follows the output (capped at the seed's cap_multiple).
+    """
+    if package.work_unit:
+        marker = " (post)" if package.work_meter == "post" else ""
+        return f"per {package.work_unit}{marker}"
+    return f"{package.price_value:g} {package.price_unit.removeprefix('mana_per_')}"
+
+
 def cmd_search(args: Any) -> None:
     config = cfg.require_auth(cfg.load_config())
     packages = registry.search_packages(config, query=args.query)
     if not packages:
         print("no seed packages found")
         return
-    print(f"{'SEED':<20} {'VERSION':<10} {'PRICE':<16} {'RUNES':<6} {'VISIBILITY':<11} NAME")
+    print(f"{'SEED':<20} {'VERSION':<10} {'PRICING':<24} {'RUNES':<6} {'VISIBILITY':<11} NAME")
     for package in packages:
         visibility = "mine" if package.mine else package.visibility
-        price = f"{package.price_value:g} {package.price_unit.removeprefix('mana_per_')}"
         print(
-            f"{package.id:<20} {package.version:<10} {price:<16} "
+            f"{package.id:<20} {package.version:<10} {_pricing_cell(package):<24} "
             f"{package.online_runes:<6} {visibility:<11} {package.name}"
         )
 

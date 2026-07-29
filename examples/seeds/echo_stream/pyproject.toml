@@ -1,6 +1,6 @@
 [project]
 name = "charms-seed-echo-stream"
-version = "0.1.0"
+version = "0.2.0"
 description = "Streaming echo seed — dependency-free realtime demo"
 requires-python = ">=3.12"
 # charms-core is provided by the charms-launcher runtime — packaged seeds

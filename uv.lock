@@ -95,19 +95,19 @@ wheels = [
 
 [[package]]
 name = "charms-core"
-version = "0.1.1"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c6/1a/eb49720ee68782e171c58217a9c63c6959363afac40a3ffa517db0231b31/charms_core-0.1.1.tar.gz", hash = "sha256:81b41aa984e0e57630950f8bd83fa3a3627617dd71d6aef82572707ad74ff814", size = 29669, upload-time = "2026-07-26T12:31:25.07Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/12/5956884f75ab6ddf6321a835e3ad88eefbfeb0814b86a3918dc2c4be1fff/charms_core-0.2.0.tar.gz", hash = "sha256:7f8469eb802c2a771cc394dcbcc0db0ad5a9a1c6d24e8b5fec2835fc569b7679", size = 45751, upload-time = "2026-07-29T18:14:51.685Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/c3/1143c13e9f3570eb005f08d5fee7cca7a06a6773093fea97cae23db3c8b6/charms_core-0.1.1-py3-none-any.whl", hash = "sha256:fcbc1cc61210b063a705e7a070be216d6efb6b1717eb03cb84c32ef628278000", size = 27448, upload-time = "2026-07-26T12:31:25.877Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/45/97893f00a8709c884705689b82cb37cbb93e78db7096e9419d7e4b8f14bd/charms_core-0.2.0-py3-none-any.whl", hash = "sha256:84f6d2db61b59a5e55e5ecabb6939e554ed5b8e2a8e25cd8d8c29f97796de122", size = 38349, upload-time = "2026-07-29T18:14:50.718Z" },
 ]
 
 [[package]]
 name = "charms-launcher"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "launcher" }
 dependencies = [
     { name = "charms-core" },
@@ -118,7 +118,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charms-core", specifier = "==0.1.1" },
+    { name = "charms-core", specifier = "==0.2.0" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "websockets", specifier = ">=14" },
@@ -126,12 +126,12 @@ requires-dist = [
 
 [[package]]
 name = "charms-seed-echo"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "examples/seeds/echo" }
 
 [[package]]
 name = "charms-seed-echo-stream"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "examples/seeds/echo_stream" }
 
 [[package]]

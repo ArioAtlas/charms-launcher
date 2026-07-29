@@ -82,8 +82,9 @@ wins), so scripted setups keep working.
 
 ## Seed packages
 
-A seed package is a zip with `manifest.json` (options schema, price,
-environment rules), `pyproject.toml` (metadata + dependencies + the
+A seed package is a zip with `manifest.json` (options schema, the declared
+work units that the market prices — legacy packages carry a price block
+instead — and environment rules), `pyproject.toml` (metadata + dependencies + the
 `charms.seeds` entry point), `README.md`, and the Python code. Packages
 declare their real dependencies but **never `charms-core`** — this runtime
 provides it inside every seed env. Build your own from the starter template

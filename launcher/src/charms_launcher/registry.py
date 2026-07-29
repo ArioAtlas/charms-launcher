@@ -32,6 +32,10 @@ class SeedPackageInfo(BaseModel):
     visibility: str = "private"
     price_value: float = 0
     price_unit: str = "mana_per_second"
+    # Work-unit pricing summary (charms.md §12.3). None means the package
+    # declares no `work` block and clients fall back to price_value/price_unit.
+    work_unit: str | None = None
+    work_meter: str | None = None  # "pre" | "post"
     supports_streaming: bool = False
     size_bytes: int = 0
     sha256: str = ""

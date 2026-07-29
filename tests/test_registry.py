@@ -27,7 +27,16 @@ def test_search_sends_bearer_and_parses(transport) -> None:  # type: ignore[no-u
         return httpx.Response(
             200,
             json={
-                "packages": [{"id": "demo", "name": "Demo", "version": "0.2.0", "online_runes": 3}]
+                "packages": [
+                    {
+                        "id": "demo",
+                        "name": "Demo",
+                        "version": "0.2.0",
+                        "online_runes": 3,
+                        "work_unit": "kchar",
+                        "work_meter": "pre",
+                    }
+                ]
             },
         )
 
@@ -36,6 +45,32 @@ def test_search_sends_bearer_and_parses(transport) -> None:  # type: ignore[no-u
     assert len(packages) == 1
     assert packages[0].id == "demo"
     assert packages[0].online_runes == 3
+    assert packages[0].work_unit == "kchar"
+    assert packages[0].work_meter == "pre"
+
+
+def test_search_parses_legacy_listing_without_work_fields(transport) -> None:  # type: ignore[no-untyped-def]
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "packages": [
+                    {
+                        "id": "old",
+                        "name": "Old",
+                        "version": "0.1.0",
+                        "price_value": 2,
+                        "price_unit": "mana_per_token",
+                    }
+                ]
+            },
+        )
+
+    transport(handler)
+    packages = registry.search_packages(CONFIG)
+    assert packages[0].work_unit is None
+    assert packages[0].work_meter is None
+    assert packages[0].price_value == 2
 
 
 def test_rejected_key_raises(transport) -> None:  # type: ignore[no-untyped-def]

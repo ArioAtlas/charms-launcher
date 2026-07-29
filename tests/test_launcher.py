@@ -3,9 +3,11 @@ from pathlib import Path
 
 import pytest
 from charms_core import protocol
+from charms_core.seed import SeedDescriptor
 
-from charms_launcher.cli import _ws_url, load_env_file, load_seed_class
+from charms_launcher.cli import _pricing_cell, _ws_url, load_env_file, load_seed_class
 from charms_launcher.executor import SeedExecutor
+from charms_launcher.registry import SeedPackageInfo
 from charms_seed_echo import EchoSeed
 
 
@@ -51,6 +53,33 @@ def test_seed_entry_point_loading() -> None:
     assert load_seed_class("echo") is EchoSeed
     with pytest.raises(SystemExit):
         load_seed_class("does-not-exist")
+
+
+def test_descriptor_carries_work_spec() -> None:
+    """Work specs ride rune registration via the descriptor's manifest."""
+    descriptor = SeedDescriptor.from_seed(EchoSeed)
+    assert descriptor.manifest.work is not None
+    assert descriptor.manifest.work.unit == "kchar"
+    assert descriptor.manifest.work.meter == "pre"
+
+
+def _listing(**overrides: object) -> SeedPackageInfo:
+    defaults: dict[str, object] = {"id": "demo", "name": "Demo", "version": "0.2.0"}
+    return SeedPackageInfo.model_validate({**defaults, **overrides})
+
+
+def test_pricing_cell_prefers_work_unit() -> None:
+    assert _pricing_cell(_listing(work_unit="audio_minute", work_meter="pre")) == (
+        "per audio_minute"
+    )
+
+
+def test_pricing_cell_flags_post_metered_units() -> None:
+    assert _pricing_cell(_listing(work_unit="ktoken", work_meter="post")) == "per ktoken (post)"
+
+
+def test_pricing_cell_falls_back_to_legacy_price() -> None:
+    assert _pricing_cell(_listing(price_value=2, price_unit="mana_per_token")) == "2 token"
 
 
 def test_ws_url_normalization() -> None:

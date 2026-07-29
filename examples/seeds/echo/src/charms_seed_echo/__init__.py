@@ -2,6 +2,7 @@
 
 from charms_core.seed import Seed, SeedContext, SeedManifest
 from charms_core.types import Modality, PortSchema
+from charms_core.work import VarSource, VarTransform, WorkSpec, WorkVar
 from pydantic import BaseModel, Field
 
 
@@ -21,8 +22,25 @@ class EchoSeed(Seed[EchoInput, EchoOutput, EchoConfig]):
     manifest = SeedManifest(
         id="echo",
         name="Echo",
-        version="0.1.0",
+        version="0.2.0",
         description="Echoes text back (optionally uppercased). Dispatch demo seed.",
+        work=WorkSpec(
+            unit="kchar",
+            meter="pre",
+            formula="chars / 1000",
+            variables=[
+                WorkVar(
+                    name="chars",
+                    source=VarSource.INPUT,
+                    path="text",
+                    transform=VarTransform.LENGTH,
+                    default=0,
+                    min=0,
+                    max=1_000_000,
+                )
+            ],
+            min_units=0.001,
+        ),
     )
     inputs = [PortSchema(name="text", modality=Modality.TEXT, description="Text to echo")]
     outputs = [PortSchema(name="text", modality=Modality.TEXT, description="Echoed text")]
